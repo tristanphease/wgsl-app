@@ -1,0 +1,47 @@
+name: "Dioxus Deploy"
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1.0.7
+        with:
+          toolchain: stable
+          profile: minimal
+          target: wasm32-unknown-unknown
+          override: true
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@v1.15.6
+      - name: Install Dioxus-CLI
+        shell: bash
+        run: cargo binstall dioxus-cli@0.7.0-rc.0
+  
+      - name: Build Project
+        shell: bash
+        run: dx bundle --web --ssg --release --out-dir build --base-path ${{ github.event.repository.name }}
+  
+      - name: Upload files as artifact
+        id: deployment
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/public
+  
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

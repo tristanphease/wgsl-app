@@ -20,8 +20,8 @@ fn main() {
     #[cfg(feature = "native")]
     dioxus_native::launch(App);
 
-    #[cfg(not(feature = "native"))]
-    dioxus::launch(App)
+    #[cfg(feature = "web")]
+    dioxus::launch(App);
 }
 
 #[component]
