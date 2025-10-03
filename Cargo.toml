@@ -1,0 +1,26 @@
+[package]
+name = "wgsl-app"
+version = "0.1.0"
+authors = ["Tristan Phease <tristan.phease@gmail.com>"]
+edition = "2021"
+
+[dependencies]
+bytemuck = "1"
+dioxus = "0.7.0-rc.0"
+dioxus-native = { version = "0.7.0-rc.0", optional = true }
+tracing-subscriber = { version = "0.3.20", optional = true }
+wgpu = "24.0.5"
+winit = "0.30"
+web-sys = { version = "0.3", optional = true, features = ["HtmlCanvasElement"] }
+anyhow = "1.0"
+gloo-timers = { version = "0.3", optional = true }
+
+[features]
+default = ["web"]
+# for running on the web
+web = ["dioxus/web", "dep:web-sys", "wgpu/webgpu", "dep:gloo-timers"]
+desktop = ["native"]
+native = ["dioxus/native", "dep:dioxus-native"]
+mobile = ["dioxus/mobile", "native"]
+tracing = ["dep:tracing-subscriber", "dioxus-native/tracing"]
+
