@@ -10,7 +10,7 @@ use crate::components::{
 mod components;
 pub mod wgpu_render;
 
-static STYLES: Asset = asset!("./assets/main.css");
+static STYLES: Asset = asset!("/assets/main.css");
 const DEFAULT_FRAGMENT_SHADER: &str = include_str!("../assets/shader/fragment.wgsl");
 
 fn main() {

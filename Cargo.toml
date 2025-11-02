@@ -6,8 +6,8 @@ edition = "2021"
 
 [dependencies]
 bytemuck = "1"
-dioxus = "0.7.0-rc.0"
-dioxus-native = { version = "0.7.0-rc.0", optional = true }
+dioxus = "0.7.0"
+dioxus-native = { version = "0.7.0", optional = true }
 tracing-subscriber = { version = "0.3.20", optional = true }
 wgpu = "24.0.5"
 winit = "0.30"
@@ -23,4 +23,3 @@ desktop = ["native"]
 native = ["dioxus/native", "dep:dioxus-native"]
 mobile = ["dioxus/mobile", "native"]
 tracing = ["dep:tracing-subscriber", "dioxus-native/tracing"]
-
