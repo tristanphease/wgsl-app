@@ -1,0 +1,18 @@
+/**
+ * Styles that are used globally across the app
+ * Contains styles that apply to everything and utility classes
+**/
+
+html,
+body,
+main {
+    height: 100%;
+    font-family: system-ui, sans;
+    margin: 0;
+}
+
+main {
+    background: #ffffff;
+    width: 100vw;
+    height: 100vh;
+}

@@ -3,6 +3,10 @@ use dioxus::prelude::*;
 
 const VERTEX_SHADER: &str = include_str!("../../assets/shader/vertex.wgsl");
 const FRAGMENT_SHADER: &str = include_str!("../../assets/shader/fragment.wgsl");
+const CANVAS_ID: &'static str = "wgpu-canvas";
+
+#[css_module("/assets/style/wgpu_canvas.css")]
+struct Styles;
 
 #[derive(Props, PartialEq, Clone)]
 pub struct WgpuCanvasProps {
@@ -55,8 +59,8 @@ pub fn NativeWgpuCanvas(props: WgpuCanvasProps) -> Element {
     ));
 
     rsx! {
-        div { id: "canvas-container",
-            canvas { id: "wgpu-canvas", "src": paint_source_id }
+        div { class: Styles::canvas_container,
+            canvas { id: CANVAS_ID, "src": paint_source_id }
         }
     }
 }
@@ -116,14 +120,14 @@ pub fn WebWgpuCanvas(props: WgpuCanvasProps) -> Element {
     });
 
     rsx! {
-        div { id: "canvas-container",
+        div { class: Styles::canvas_container,
             canvas {
                 onmounted: move |event| {
                     let event = event.as_web_event();
                     canvas_element
                         .set(Some(event.dyn_into::<web_sys::HtmlCanvasElement>().unwrap()));
                 },
-                id: "wgpu-canvas",
+                id: CANVAS_ID,
             }
         }
     }

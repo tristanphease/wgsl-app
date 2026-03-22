@@ -10,7 +10,7 @@ use crate::components::{
 mod components;
 pub mod wgpu_render;
 
-static STYLES: Asset = asset!("/assets/main.css");
+static GLOBAL_STYLES: Asset = asset!("/assets/style/global.css");
 const DEFAULT_FRAGMENT_SHADER: &str = include_str!("../assets/shader/fragment.wgsl");
 
 fn main() {
@@ -24,17 +24,20 @@ fn main() {
     dioxus::launch(App);
 }
 
+#[css_module("/assets/style/main.css")]
+struct MainStyles;
+
 #[component]
 fn App() -> Element {
     let mut current_frag_text = use_signal(|| DEFAULT_FRAGMENT_SHADER.to_string());
     let mut needs_compile = use_signal(|| CanvasCompileStatus::FinishedCompile);
 
     rsx! {
-        document::Link { rel: "stylesheet", href: STYLES }
+        document::Link { rel: "stylesheet", href: GLOBAL_STYLES }
         document::Link { rel: "icon", href: asset!("/assets/favicon.ico") }
         document::Title { "wgsl app" }
         HeaderComponent {}
-        div { id: "main-wrapper",
+        div { class: MainStyles::main_wrapper,
             TextEditor {
                 text: current_frag_text(),
                 modify_text: move |new_text| current_frag_text.set(new_text),
