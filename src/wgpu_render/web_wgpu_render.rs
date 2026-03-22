@@ -11,7 +11,10 @@ pub struct WebCanvasRenderer {
 }
 
 impl WebCanvasRenderer {
-    pub async fn new(canvas_element: web_sys::HtmlCanvasElement, shader: &str) -> anyhow::Result<Self> {
+    pub async fn new(
+        canvas_element: web_sys::HtmlCanvasElement,
+        shader: &str,
+    ) -> anyhow::Result<Self> {
         let instance = wgpu::Instance::new(&InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
@@ -28,18 +31,16 @@ impl WebCanvasRenderer {
                 force_fallback_adapter: false,
             })
             .await
-            .ok_or(WebCanvasError::AdapterFailed)?;
+            .map_err(|_| WebCanvasError::AdapterFailed)?;
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::downlevel_defaults(),
-                    memory_hints: Default::default(),
-                },
-                None,
-            )
+            .request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits::downlevel_defaults(),
+                memory_hints: Default::default(),
+                trace: Trace::Off,
+            })
             .await
             .map_err(|_| WebCanvasError::DeviceFailed)?;
 

@@ -20,7 +20,7 @@ pub struct CanvasPaintSource {
 }
 
 impl CustomPaintSource for CanvasPaintSource {
-    fn resume(&mut self, _instance: &Instance, device_handle: &dioxus_native::DeviceHandle) {
+    fn resume(&mut self, device_handle: &dioxus_native::DeviceHandle) {
         // Extract device and queue from device handle
         let device = &device_handle.device;
         let queue = &device_handle.queue;
@@ -50,7 +50,11 @@ impl CanvasPaintSource {
         Self::with_channel(tx, rx, shader)
     }
 
-    pub fn with_channel(tx: Sender<CanvasMessage>, rx: Receiver<CanvasMessage>, shader: String) -> Self {
+    pub fn with_channel(
+        tx: Sender<CanvasMessage>,
+        rx: Receiver<CanvasMessage>,
+        shader: String,
+    ) -> Self {
         Self {
             state: CanvasRendererState::Suspended,
             tx,
@@ -131,11 +135,12 @@ impl ActiveCanvasRenderer {
         height: u32,
     ) -> Option<TextureHandle> {
         // if next texture size doesn't match specified size just drop texture
-        if let Some(next) = &self.next_texture {
-            if next.texture.width() != width || next.texture.height() != height {
-                ctx.unregister_texture(next.handle);
-                self.next_texture = None;
-            }
+        if let Some(next) = self
+            .next_texture
+            .take_if(|next| next.texture.width() != width || next.texture.height() != height)
+        {
+            ctx.unregister_texture(next.handle);
+            self.next_texture = None;
         }
 
         // if there is no next texture then create one and register it
@@ -150,7 +155,7 @@ impl ActiveCanvasRenderer {
         };
 
         let next_texture = &texture_and_handle.texture;
-        let next_texture_handle = texture_and_handle.handle;
+        let next_texture_handle = texture_and_handle.handle.clone();
 
         let view = next_texture.create_view(&TextureViewDescriptor::default());
 

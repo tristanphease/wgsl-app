@@ -9,3 +9,6 @@
 .vscode
 
 /build
+
+# Zed
+.zed

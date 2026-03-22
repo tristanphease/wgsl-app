@@ -9,7 +9,6 @@ pub struct CommonCanvasRenderer {
 
 impl CommonCanvasRenderer {
     pub fn new(device: Device, queue: Queue, shader: &str) -> Self {
-        
         let pipeline = Self::create_render_pipeline(&device, shader);
 
         Self {
@@ -39,6 +38,7 @@ impl CommonCanvasRenderer {
                         load: LoadOp::Clear(wgpu::Color::GREEN),
                         store: StoreOp::Store,
                     },
+                    depth_slice: None,
                 })],
                 depth_stencil_attachment: None,
                 timestamp_writes: None,
@@ -61,34 +61,32 @@ impl CommonCanvasRenderer {
             source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(shader)),
         });
 
-        let pipeline_layout = device
-            .create_pipeline_layout(&PipelineLayoutDescriptor {
-                label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[],
-                push_constant_ranges: &[],
-            });
+        let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
+            label: Some("Render Pipeline Layout"),
+            bind_group_layouts: &[],
+            push_constant_ranges: &[],
+        });
 
-        device
-            .create_render_pipeline(&RenderPipelineDescriptor {
-                label: Some("Render Pipeline"),
-                layout: Some(&pipeline_layout),
-                vertex: VertexState {
-                    module: &shader,
-                    entry_point: Some("vs_main"),
-                    buffers: &[],
-                    compilation_options: Default::default(),
-                },
-                fragment: Some(FragmentState {
-                    module: &shader,
-                    entry_point: Some("fs_main"),
-                    compilation_options: Default::default(),
-                    targets: &[Some(TextureFormat::Rgba8Unorm.into())],
-                }),
-                primitive: PrimitiveState::default(),
-                depth_stencil: None,
-                multisample: MultisampleState::default(),
-                multiview: None,
-                cache: None,
-            })
+        device.create_render_pipeline(&RenderPipelineDescriptor {
+            label: Some("Render Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                buffers: &[],
+                compilation_options: Default::default(),
+            },
+            fragment: Some(FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                compilation_options: Default::default(),
+                targets: &[Some(TextureFormat::Rgba8Unorm.into())],
+            }),
+            primitive: PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: MultisampleState::default(),
+            multiview: None,
+            cache: None,
+        })
     }
 }
