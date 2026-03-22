@@ -1,11 +1,11 @@
 use dioxus::logger::tracing::*;
 use dioxus::prelude::*;
 
-const VERTEX_SHADER: &str = include_str!("../../assets/shader/vertex.wgsl");
-const FRAGMENT_SHADER: &str = include_str!("../../assets/shader/fragment.wgsl");
+const VERTEX_SHADER: &str = include_str!("../../assets/shaders/vertex.wgsl");
+const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/fragment.wgsl");
 const CANVAS_ID: &'static str = "wgpu-canvas";
 
-#[css_module("/assets/style/wgpu_canvas.css")]
+#[css_module("/assets/styles/wgpu_canvas.css")]
 struct Styles;
 
 #[derive(Props, PartialEq, Clone)]

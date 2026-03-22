@@ -1,16 +1,11 @@
 use dioxus::prelude::*;
 
-#[component]
-pub fn HeaderStyle() -> Element {
-    rsx! {
-        style { {include_str!("header.css")} }
-    }
-}
+#[css_module("/assets/styles/header.css")]
+struct Style;
 
 #[component]
 pub fn HeaderComponent() -> Element {
     rsx! {
-        HeaderStyle {}
-        h1 { class: "header", "wgsl editor" }
+        h1 { class: Style::header, "wgsl editor" }
     }
 }

@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-#[css_module("/assets/style/tool_bar.css")]
+#[css_module("/assets/styles/tool_bar.css")]
 struct Styles;
 
 #[component]

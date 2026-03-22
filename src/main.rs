@@ -10,8 +10,8 @@ use crate::components::{
 mod components;
 pub mod wgpu_render;
 
-static GLOBAL_STYLES: Asset = asset!("/assets/style/global.css");
-const DEFAULT_FRAGMENT_SHADER: &str = include_str!("../assets/shader/fragment.wgsl");
+static GLOBAL_STYLES: Asset = asset!("/assets/styles/global.css");
+const DEFAULT_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/fragment.wgsl");
 
 fn main() {
     #[cfg(feature = "tracing")]
@@ -24,7 +24,7 @@ fn main() {
     dioxus::launch(App);
 }
 
-#[css_module("/assets/style/main.css")]
+#[css_module("/assets/styles/main.css")]
 struct MainStyles;
 
 #[component]
