@@ -43,18 +43,18 @@ fn App() -> Element {
                 modify_text: move |new_text| current_frag_text.set(new_text),
             }
             WgpuCanvas {
-                compile_status: needs_compile(),
+                compile_status: needs_compile,
                 fragment_shader_text: current_frag_text,
                 set_compile_status: move |status| {
                     match status {
                         CanvasCompileStatus::Compiling => {
-                            if *needs_compile.read() == CanvasCompileStatus::NeedsCompile {
+                            if needs_compile() == CanvasCompileStatus::NeedsCompile {
                                 *needs_compile.write() = status;
                             }
                         }
                         CanvasCompileStatus::FinishedCompile => {
-                            if *needs_compile.read() == CanvasCompileStatus::Compiling
-                                || *needs_compile.read() == CanvasCompileStatus::NeedsCompile
+                            if needs_compile() == CanvasCompileStatus::Compiling
+                                || needs_compile() == CanvasCompileStatus::NeedsCompile
                             {
                                 *needs_compile.write() = status;
                             }

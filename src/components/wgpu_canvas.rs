@@ -10,9 +10,9 @@ struct Styles;
 
 #[derive(Props, PartialEq, Clone)]
 pub struct WgpuCanvasProps {
-    compile_status: CanvasCompileStatus,
-    fragment_shader_text: String,
-    set_compile_status: EventHandler<CanvasCompileStatus>,
+    compile_status: ReadSignal<CanvasCompileStatus>,
+    fragment_shader_text: ReadSignal<String>,
+    set_compile_status: ReadSignal<EventHandler<CanvasCompileStatus>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -29,14 +29,35 @@ pub fn WgpuCanvas(props: WgpuCanvasProps) -> Element {
         WebWgpuCanvas { ..props }
     }
     #[cfg(feature = "native")]
-    rsx! {
-        NativeWgpuCanvas { ..props }
+    {
+        let WgpuCanvasProps {
+            compile_status,
+            fragment_shader_text,
+            set_compile_status,
+        } = props;
+        // this is really weird but essentially we need the component to only run once since otherwise
+        // it creates multiple paint sources and the channels get mixed up
+        // there might be a better way to handle this but i'm not sure how
+        let compile_status = use_memo(move || compile_status());
+        let fragment_shader_text = use_memo(move || fragment_shader_text());
+        let set_compile_status = use_memo(move || set_compile_status());
+        rsx! {
+            NativeWgpuCanvas{
+                compile_status,
+                fragment_shader_text,
+                set_compile_status
+            }
+        }
     }
 }
 
 #[component]
 #[cfg(feature = "native")]
-pub fn NativeWgpuCanvas(props: WgpuCanvasProps) -> Element {
+pub fn NativeWgpuCanvas(
+    compile_status: Memo<CanvasCompileStatus>,
+    fragment_shader_text: Memo<String>,
+    set_compile_status: Memo<EventHandler<CanvasCompileStatus>>,
+) -> Element {
     use crate::wgpu_render::native_wgpu_render::CanvasPaintSource;
     use dioxus_native::use_wgpu;
 
@@ -45,22 +66,27 @@ pub fn NativeWgpuCanvas(props: WgpuCanvasProps) -> Element {
     let sender = paint_source.sender();
     let paint_source_id = use_wgpu(move || paint_source);
 
-    use_effect(use_reactive(
-        (&props.compile_status,),
-        move |compile_status| {
-            if compile_status.0 == CanvasCompileStatus::NeedsCompile {
-                use crate::wgpu_render::native_wgpu_render::CanvasMessage;
+    use_effect(move || {
+        if compile_status() == CanvasCompileStatus::NeedsCompile {
+            use crate::wgpu_render::native_wgpu_render::CanvasMessage;
 
-                let shader = format!("{}{}", VERTEX_SHADER, &props.fragment_shader_text);
-                info!("rendering new shader");
-                let _ = sender.send(CanvasMessage::SetShader(shader));
+            let shader = format!("{}{}", VERTEX_SHADER, &fragment_shader_text());
+            info!("rendering new shader");
+            let send_result = sender.send(CanvasMessage::SetShader(shader));
+            if let Err(error) = send_result {
+                error!("got error sending message = {error:?}");
             }
-        },
-    ));
+            set_compile_status().call(CanvasCompileStatus::FinishedCompile);
+        }
+    });
 
     rsx! {
-        div { class: Styles::canvas_container,
-            canvas { id: CANVAS_ID, "src": paint_source_id }
+        div {
+            class: Styles::canvas_container,
+            canvas {
+                id: CANVAS_ID,
+                "src": paint_source_id
+            }
         }
     }
 }
@@ -87,6 +113,7 @@ pub fn WebWgpuCanvas(props: WgpuCanvasProps) -> Element {
                     renderer.set_shader(&shader);
                     props
                         .set_compile_status
+                        .read()
                         .call(CanvasCompileStatus::FinishedCompile);
                 } else {
                     warn!("can't get renderer");

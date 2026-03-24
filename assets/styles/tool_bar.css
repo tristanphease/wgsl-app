@@ -1,3 +1,10 @@
 .tool-bar {
     grid-column-end: span 2;
 }
+
+button {
+    transition: all 0.5s;
+    &:hover {
+        background-color: red;
+    }
+}

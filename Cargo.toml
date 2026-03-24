@@ -19,7 +19,7 @@ gloo-timers = { version = "0.3", optional = true }
 default = []
 # for running on the web
 web = ["dioxus/web", "dep:web-sys", "wgpu/webgpu", "dep:gloo-timers"]
-desktop = ["native"]
+desktop = ["native", "tracing"]
 native = ["dioxus/native", "dep:dioxus-native"]
 mobile = ["dioxus/mobile", "native"]
 tracing = ["dep:tracing-subscriber", "dioxus-native/tracing"]

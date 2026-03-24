@@ -6,8 +6,14 @@ struct Styles;
 #[component]
 pub fn ToolBar(on_compile: EventHandler<()>) -> Element {
     rsx! {
-        div { class: Styles::tool_bar,
-            button { onclick: move |_| on_compile.call(()), "compile" }
+        div {
+            class: Styles::tool_bar,
+            button {
+                onclick: move |_| {
+                    on_compile.call(())
+                },
+                "compile"
+            }
         }
     }
 }

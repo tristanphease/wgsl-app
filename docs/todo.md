@@ -4,6 +4,7 @@
 
 - [ ] Add dark mode
 - [ ] Customise size - drag border to resize
+- [ ] Progressive enhancement - design around smaller screens
 
 ### Improve text editor
 
@@ -19,7 +20,8 @@
 
 ### Improve native desktop experience
 
-- [ ] Work out why the compile button isn't working
+- [x] Work out why the compile button isn't working
+- [ ] Use git version of blitz for more up to date?
 
 ### Settings
 

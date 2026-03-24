@@ -99,6 +99,7 @@ impl CanvasPaintSource {
     }
 }
 
+#[derive(Debug)]
 pub enum CanvasMessage {
     SetShader(String),
 }
