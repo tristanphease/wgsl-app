@@ -147,7 +147,8 @@ pub fn WebWgpuCanvas(props: WgpuCanvasProps) -> Element {
     });
 
     rsx! {
-        div { class: Styles::canvas_container,
+        div {
+            class: Styles::canvas_container,
             canvas {
                 onmounted: move |event| {
                     let event = event.as_web_event();

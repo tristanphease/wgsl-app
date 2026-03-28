@@ -12,7 +12,7 @@ pub fn ToolBar(on_compile: EventHandler<()>) -> Element {
                 onclick: move |_| {
                     on_compile.call(())
                 },
-                "compile"
+                "Compile"
             }
         }
     }

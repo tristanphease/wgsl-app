@@ -1,3 +1,16 @@
-.header {
+.header-text {
     font-family: Verdana, Geneva, Tahoma, sans-serif;
+    text-align: center;
+    flex-grow: 1;
+}
+
+.header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.settings {
+    padding-left: 20px;
+    padding-right: 20px;
 }
