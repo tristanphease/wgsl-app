@@ -9,6 +9,7 @@ bytemuck = "1"
 dioxus = "0.7"
 dioxus-native = { version = "0.7", optional = true }
 tracing-subscriber = { version = "0.3", optional = true }
+futures = { version = "0.3", optional = true }
 wgpu = "26.0"
 winit = "0.30"
 web-sys = { version = "0.3", optional = true, features = ["HtmlCanvasElement"] }
@@ -20,6 +21,6 @@ default = []
 # for running on the web
 web = ["dioxus/web", "dep:web-sys", "wgpu/webgpu", "dep:gloo-timers"]
 desktop = ["native", "tracing"]
-native = ["dioxus/native", "dep:dioxus-native"]
+native = ["dioxus/native", "dep:dioxus-native", "dep:futures"]
 mobile = ["dioxus/mobile", "native"]
 tracing = ["dep:tracing-subscriber", "dioxus-native/tracing"]

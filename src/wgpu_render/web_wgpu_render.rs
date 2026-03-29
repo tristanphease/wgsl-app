@@ -57,7 +57,7 @@ impl WebCanvasRenderer {
             desired_maximum_frame_latency: 2,
         };
 
-        let canvas_renderer = CommonCanvasRenderer::new(device, queue, shader);
+        let canvas_renderer = CommonCanvasRenderer::new(device, queue, shader).await?;
 
         Ok(Self {
             surface,
@@ -85,8 +85,9 @@ impl WebCanvasRenderer {
         output.present();
     }
 
-    pub fn set_shader(&mut self, shader: &str) {
-        self.canvas_renderer.set_shader(shader);
+    pub async fn set_shader(&mut self, shader: &str) -> anyhow::Result<()> {
+        self.canvas_renderer.set_shader(shader).await?;
+        Ok(())
     }
 }
 

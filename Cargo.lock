@@ -8553,6 +8553,7 @@ dependencies = [
  "bytemuck",
  "dioxus",
  "dioxus-native",
+ "futures",
  "gloo-timers",
  "tracing-subscriber",
  "web-sys",

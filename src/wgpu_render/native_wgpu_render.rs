@@ -3,6 +3,7 @@
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 use dioxus_native::{CustomPaintCtx, CustomPaintSource, TextureHandle};
+use futures::executor::block_on;
 use wgpu::*;
 
 use crate::wgpu_render::common::CommonCanvasRenderer;
@@ -24,7 +25,8 @@ impl CustomPaintSource for CanvasPaintSource {
         // Extract device and queue from device handle
         let device = &device_handle.device;
         let queue = &device_handle.queue;
-        let active_state = ActiveCanvasRenderer::new(device, queue, &self.current_shader);
+        let active_state = ActiveCanvasRenderer::new(device, queue, &self.current_shader)
+            .expect("Couldn't resume shader");
         self.state = CanvasRendererState::Active(Box::new(active_state));
     }
 
@@ -74,7 +76,11 @@ impl CanvasPaintSource {
                 Ok(msg) => match msg {
                     CanvasMessage::SetShader(new_shader) => {
                         if let CanvasRendererState::Active(ref mut renderer) = self.state {
-                            renderer.common_renderer.set_shader(&new_shader);
+                            let result = block_on(renderer.common_renderer.set_shader(&new_shader));
+                            if let Err(_) = result {
+                                // todo: pass this error back to ui
+                                dioxus::prelude::error!("Couldn't compile shader");
+                            }
                         }
                     }
                 },
@@ -118,15 +124,16 @@ struct ActiveCanvasRenderer {
 }
 
 impl ActiveCanvasRenderer {
-    fn new(device: &Device, queue: &Queue, shader: &str) -> Self {
+    fn new(device: &Device, queue: &Queue, shader: &str) -> anyhow::Result<Self> {
         let common_renderer = CommonCanvasRenderer::new(device.clone(), queue.clone(), shader);
+        let common_renderer = futures::executor::block_on(common_renderer)?;
 
-        Self {
+        Ok(Self {
             device: device.clone(),
             common_renderer,
             displayed_texture: None,
             next_texture: None,
-        }
+        })
     }
 
     fn render(

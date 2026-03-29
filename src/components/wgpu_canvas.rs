@@ -20,6 +20,7 @@ pub enum CanvasCompileStatus {
     NeedsCompile,
     Compiling,
     FinishedCompile,
+    ErrorCompile,
 }
 
 #[component]
@@ -101,26 +102,27 @@ pub fn WebWgpuCanvas(props: WgpuCanvasProps) -> Element {
     let mut canvas_element: Signal<Option<web_sys::HtmlCanvasElement>> = use_signal(|| None);
     let mut canvas_renderer: Signal<Option<WebCanvasRenderer>> = use_signal(|| None);
 
-    use_effect(use_reactive(
-        (&props.compile_status,),
-        move |compile_status| {
-            if compile_status.0 == CanvasCompileStatus::NeedsCompile {
-                if let Some(ref mut renderer) = *canvas_renderer.write() {
-                    use dioxus::logger::tracing::info;
+    use_resource(move || async move {
+        if *props.compile_status.read() == CanvasCompileStatus::NeedsCompile {
+            if let Some(ref mut renderer) = *canvas_renderer.write() {
+                use dioxus::logger::tracing::info;
 
-                    let shader = format!("{}{}", VERTEX_SHADER, &props.fragment_shader_text);
-                    info!("rendering new shader");
-                    renderer.set_shader(&shader);
-                    props
-                        .set_compile_status
-                        .read()
-                        .call(CanvasCompileStatus::FinishedCompile);
-                } else {
-                    warn!("can't get renderer");
-                }
+                let shader = format!("{}{}", VERTEX_SHADER, &props.fragment_shader_text);
+                info!("rendering new shader");
+                let shader_compile = renderer.set_shader(&shader).await;
+                let result = match shader_compile {
+                    Ok(_) => CanvasCompileStatus::FinishedCompile,
+                    Err(_) => {
+                        warn!("error compiling shader");
+                        CanvasCompileStatus::ErrorCompile
+                    }
+                };
+                props.set_compile_status.read().call(result);
+            } else {
+                warn!("can't get renderer");
             }
-        },
-    ));
+        }
+    });
 
     use_effect(move || {
         if let Some(canvas) = &*canvas_element.read() {

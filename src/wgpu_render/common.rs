@@ -1,4 +1,21 @@
+use std::{error::Error, fmt::Display};
+
 use wgpu::*;
+
+#[derive(Debug)]
+pub enum ShaderError {
+    CompileError,
+}
+
+impl Display for ShaderError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ShaderError::CompileError => f.write_str("Couldn't compile shader"),
+        }
+    }
+}
+
+impl Error for ShaderError {}
 
 #[derive(Debug)]
 pub struct CommonCanvasRenderer {
@@ -8,14 +25,15 @@ pub struct CommonCanvasRenderer {
 }
 
 impl CommonCanvasRenderer {
-    pub fn new(device: Device, queue: Queue, shader: &str) -> Self {
+    pub async fn new(device: Device, queue: Queue, shader: &str) -> Result<Self, ShaderError> {
+        let shader = Self::create_shader_module(&device, shader).await?;
         let pipeline = Self::create_render_pipeline(&device, shader);
 
-        Self {
+        Ok(Self {
             device,
             queue,
             render_pipeline: pipeline,
-        }
+        })
     }
 
     pub fn device(&self) -> &Device {
@@ -51,16 +69,34 @@ impl CommonCanvasRenderer {
         self.queue.submit(Some(encoder.finish()));
     }
 
-    pub fn set_shader(&mut self, shader: &str) {
+    pub async fn set_shader(&mut self, shader: &str) -> Result<(), ShaderError> {
+        let shader = Self::create_shader_module(&self.device, shader).await?;
         self.render_pipeline = Self::create_render_pipeline(&self.device, shader);
+        Ok(())
     }
 
-    fn create_render_pipeline(device: &Device, shader: &str) -> RenderPipeline {
+    pub async fn create_shader_module(
+        device: &Device,
+        shader: &str,
+    ) -> Result<ShaderModule, ShaderError> {
+        device.push_error_scope(ErrorFilter::Validation);
         let shader = device.create_shader_module(ShaderModuleDescriptor {
             label: None,
             source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(shader)),
         });
 
+        let error_future = device.pop_error_scope();
+        // check for errors async
+        let error = error_future.await;
+
+        if let Some(_error) = error {
+            return Err(ShaderError::CompileError);
+        }
+
+        Ok(shader)
+    }
+
+    fn create_render_pipeline(device: &Device, shader: ShaderModule) -> RenderPipeline {
         let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("Render Pipeline Layout"),
             bind_group_layouts: &[],

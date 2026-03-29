@@ -11,6 +11,8 @@
 
 - [ ] Split out into separate crate/component
 - [ ] Choose font that's nicer
+- [ ] Scrollbar
+- [ ] Don't wrap text
 - [ ] Add line numbers
 - [ ] Autocomplete? LSP? Tree sitter?
 
@@ -32,7 +34,7 @@
 ### Settings
 
 - [x] Add settings menu to change various things
-- [ ] Handle error for compiling the shader
+- [x] Handle error from compiling the shader
 - [ ] Add setting to compile shader automatically upon editing the text
 
 ### Management
