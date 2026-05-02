@@ -14,12 +14,12 @@ wgpu = "26.0"
 winit = "0.30"
 web-sys = { version = "0.3", optional = true, features = ["HtmlCanvasElement"] }
 anyhow = "1.0"
-gloo-timers = { version = "0.3", optional = true }
+dioxus-sdk-time = { version = "0.7" }
 
 [features]
 default = []
 # for running on the web
-web = ["dioxus/web", "dep:web-sys", "wgpu/webgpu", "dep:gloo-timers"]
+web = ["dioxus/web", "dep:web-sys", "wgpu/webgpu"]
 desktop = ["native", "tracing"]
 native = ["dioxus/native", "dep:dioxus-native", "dep:futures"]
 mobile = ["dioxus/mobile", "native"]

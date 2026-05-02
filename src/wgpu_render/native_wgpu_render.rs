@@ -2,6 +2,7 @@
 
 use std::sync::mpsc::{channel, Receiver, Sender};
 
+use dioxus::hooks::UnboundedSender;
 use dioxus_native::{CustomPaintCtx, CustomPaintSource, TextureHandle};
 use futures::executor::block_on;
 use wgpu::*;
@@ -13,11 +14,24 @@ enum CanvasRendererState {
     Suspended,
 }
 
+#[derive(Debug, Clone)]
+pub enum CanvasCompileMessage {
+    CompileSuccess,
+    CompileError(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct CanvasCompileResponse {
+    pub message: CanvasCompileMessage,
+    pub id: u32,
+}
+
 pub struct CanvasPaintSource {
     state: CanvasRendererState,
     tx: Sender<CanvasMessage>,
     rx: Receiver<CanvasMessage>,
     current_shader: String,
+    send_tx: Option<UnboundedSender<CanvasCompileResponse>>,
 }
 
 impl CustomPaintSource for CanvasPaintSource {
@@ -47,21 +61,23 @@ impl CustomPaintSource for CanvasPaintSource {
 }
 
 impl CanvasPaintSource {
-    pub fn new(shader: String) -> Self {
+    pub fn new(shader: String, send_tx: Option<UnboundedSender<CanvasCompileResponse>>) -> Self {
         let (tx, rx) = channel();
-        Self::with_channel(tx, rx, shader)
+        Self::with_channel(tx, rx, shader, send_tx)
     }
 
     pub fn with_channel(
         tx: Sender<CanvasMessage>,
         rx: Receiver<CanvasMessage>,
         shader: String,
+        send_tx: Option<UnboundedSender<CanvasCompileResponse>>,
     ) -> Self {
         Self {
             state: CanvasRendererState::Suspended,
             tx,
             rx,
             current_shader: shader,
+            send_tx,
         }
     }
 
@@ -74,12 +90,29 @@ impl CanvasPaintSource {
             match self.rx.try_recv() {
                 Err(_) => return,
                 Ok(msg) => match msg {
-                    CanvasMessage::SetShader(new_shader) => {
+                    CanvasMessage::SetShader(id, new_shader) => {
                         if let CanvasRendererState::Active(ref mut renderer) = self.state {
                             let result = block_on(renderer.common_renderer.set_shader(&new_shader));
-                            if let Err(_) = result {
+                            if let Err(message) = result {
                                 // todo: pass this error back to ui
-                                dioxus::prelude::error!("Couldn't compile shader");
+                                if let Some(ref tx) = self.send_tx {
+                                    let error_message =
+                                        CanvasCompileMessage::CompileError(message.to_string());
+                                    tx.unbounded_send(CanvasCompileResponse {
+                                        id,
+                                        message: error_message,
+                                    })
+                                    .expect("Couldn't send message from renderer");
+                                }
+                            } else {
+                                if let Some(ref tx) = self.send_tx {
+                                    let success_message = CanvasCompileMessage::CompileSuccess;
+                                    tx.unbounded_send(CanvasCompileResponse {
+                                        id,
+                                        message: success_message,
+                                    })
+                                    .expect("Couldn't send message from renderer");
+                                }
                             }
                         }
                     }
@@ -107,7 +140,7 @@ impl CanvasPaintSource {
 
 #[derive(Debug)]
 pub enum CanvasMessage {
-    SetShader(String),
+    SetShader(u32, String),
 }
 
 #[derive(Clone)]

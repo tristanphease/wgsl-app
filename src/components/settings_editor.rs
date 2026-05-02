@@ -7,7 +7,7 @@ struct Styles;
 
 #[component]
 pub fn SettingsEditor() -> Element {
-    let settings = use_context::<Settings>();
+    let mut settings = use_context::<Settings>();
     let is_open = *settings.is_editor_open.read();
     rsx! {
         // note that blitz doesn't support dialog
@@ -26,6 +26,16 @@ pub fn SettingsEditor() -> Element {
                         class: Styles::close_settings,
                         onclick: move |_| consume_context::<Settings>().close(),
                         "Close"
+                    }
+                }
+                div {
+                    class: Styles::settings_wrapper,
+                    label {
+                        "Change setting"
+                        input {
+                            type: "checkbox",
+                            onclick: move |_| settings.compile_setting.toggle()
+                        }
                     }
                 }
             }

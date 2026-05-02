@@ -8,19 +8,56 @@ const CANVAS_ID: &'static str = "wgpu-canvas";
 #[css_module("/assets/styles/wgpu_canvas.css")]
 struct Styles;
 
+pub struct NewCompileStatus(pub u32, pub CanvasCompileStatus);
+
 #[derive(Props, PartialEq, Clone)]
 pub struct WgpuCanvasProps {
-    compile_status: ReadSignal<CanvasCompileStatus>,
+    compile_info: ReadSignal<CanvasCompileInfo, SyncStorage>,
     fragment_shader_text: ReadSignal<String>,
-    set_compile_status: ReadSignal<EventHandler<CanvasCompileStatus>>,
+    set_compile_status: ReadSignal<EventHandler<NewCompileStatus>>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CanvasCompileStatus {
+    // needs a compile
     NeedsCompile,
-    Compiling,
+    // is compiling
+    // Compiling,
+    // finished compiling
     FinishedCompile,
+    // error occurred while compiling
     ErrorCompile,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CanvasCompileInfo {
+    id: u32,
+    status: CanvasCompileStatus,
+}
+
+impl CanvasCompileInfo {
+    pub fn new() -> Self {
+        Self {
+            id: 0,
+            status: CanvasCompileStatus::FinishedCompile,
+        }
+    }
+
+    pub fn needs_compile(&self) -> bool {
+        self.status == CanvasCompileStatus::NeedsCompile
+    }
+
+    pub fn set_compile_status(&mut self, new_status: CanvasCompileStatus, id: u32) {
+        // only update if id is higher or the same as existing one
+        if id >= self.id {
+            self.id = id;
+            self.status = new_status;
+        }
+    }
+
+    pub fn get_current_id(&self) -> u32 {
+        self.id
+    }
 }
 
 #[component]
@@ -32,19 +69,19 @@ pub fn WgpuCanvas(props: WgpuCanvasProps) -> Element {
     #[cfg(feature = "native")]
     {
         let WgpuCanvasProps {
-            compile_status,
+            compile_info,
             fragment_shader_text,
             set_compile_status,
         } = props;
         // this is really weird but essentially we need the component to only run once since otherwise
         // it creates multiple paint sources and the channels get mixed up
         // there might be a better way to handle this but i'm not sure how
-        let compile_status = use_memo(move || compile_status());
+        let compile_info = use_memo(move || compile_info());
         let fragment_shader_text = use_memo(move || fragment_shader_text());
         let set_compile_status = use_memo(move || set_compile_status());
         rsx! {
             NativeWgpuCanvas{
-                compile_status,
+                compile_info,
                 fragment_shader_text,
                 set_compile_status
             }
@@ -55,29 +92,51 @@ pub fn WgpuCanvas(props: WgpuCanvasProps) -> Element {
 #[component]
 #[cfg(feature = "native")]
 pub fn NativeWgpuCanvas(
-    compile_status: Memo<CanvasCompileStatus>,
+    compile_info: Memo<CanvasCompileInfo>,
     fragment_shader_text: Memo<String>,
-    set_compile_status: Memo<EventHandler<CanvasCompileStatus>>,
+    set_compile_status: Memo<EventHandler<NewCompileStatus>>,
 ) -> Element {
-    use crate::wgpu_render::native_wgpu_render::CanvasPaintSource;
+    use crate::wgpu_render::native_wgpu_render::{
+        CanvasCompileMessage, CanvasCompileResponse, CanvasPaintSource,
+    };
     use dioxus_native::use_wgpu;
+    use futures::StreamExt;
+
+    let coroutine = use_coroutine(
+        move |mut rx: UnboundedReceiver<CanvasCompileResponse>| async move {
+            while let Some(compile_response) = rx.next().await {
+                let result = match compile_response.message {
+                    CanvasCompileMessage::CompileSuccess => CanvasCompileStatus::FinishedCompile,
+                    CanvasCompileMessage::CompileError(_error_message) => {
+                        CanvasCompileStatus::ErrorCompile
+                    }
+                };
+                set_compile_status
+                    .write()
+                    .call(NewCompileStatus(compile_response.id, result));
+            }
+        },
+    );
 
     let shader = format!("{}{}", VERTEX_SHADER, FRAGMENT_SHADER);
-    let paint_source = CanvasPaintSource::new(shader);
+    let paint_source = CanvasPaintSource::new(shader, Some(coroutine.tx()));
     let sender = paint_source.sender();
     let paint_source_id = use_wgpu(move || paint_source);
 
     use_effect(move || {
-        if compile_status() == CanvasCompileStatus::NeedsCompile {
+        let compile_info = compile_info.read();
+        if compile_info.needs_compile() {
             use crate::wgpu_render::native_wgpu_render::CanvasMessage;
 
             let shader = format!("{}{}", VERTEX_SHADER, &fragment_shader_text());
             info!("rendering new shader");
-            let send_result = sender.send(CanvasMessage::SetShader(shader));
+            let send_result = sender.send(CanvasMessage::SetShader(
+                compile_info.get_current_id(),
+                shader,
+            ));
             if let Err(error) = send_result {
                 error!("got error sending message = {error:?}");
             }
-            set_compile_status().call(CanvasCompileStatus::FinishedCompile);
         }
     });
 
@@ -103,21 +162,28 @@ pub fn WebWgpuCanvas(props: WgpuCanvasProps) -> Element {
     let mut canvas_renderer: Signal<Option<WebCanvasRenderer>> = use_signal(|| None);
 
     use_resource(move || async move {
-        if *props.compile_status.read() == CanvasCompileStatus::NeedsCompile {
+        let compile_info = *props.compile_info.read();
+        let set_compile = props.set_compile_status.read();
+        if compile_info.needs_compile() {
             if let Some(ref mut renderer) = *canvas_renderer.write() {
-                use dioxus::logger::tracing::info;
+                let current_id = compile_info.get_current_id();
+
+                // set_compile.call(NewCompileStatus(current_id, CanvasCompileStatus::Compiling));
 
                 let shader = format!("{}{}", VERTEX_SHADER, &props.fragment_shader_text);
                 info!("rendering new shader");
                 let shader_compile = renderer.set_shader(&shader).await;
                 let result = match shader_compile {
-                    Ok(_) => CanvasCompileStatus::FinishedCompile,
+                    Ok(_) => {
+                        renderer.render();
+                        CanvasCompileStatus::FinishedCompile
+                    }
                     Err(_) => {
                         warn!("error compiling shader");
                         CanvasCompileStatus::ErrorCompile
                     }
                 };
-                props.set_compile_status.read().call(result);
+                set_compile.call(NewCompileStatus(current_id, result));
             } else {
                 warn!("can't get renderer");
             }
@@ -132,19 +198,14 @@ pub fn WebWgpuCanvas(props: WgpuCanvasProps) -> Element {
                 let renderer = WebCanvasRenderer::new(canvas, &shader).await;
                 if let Ok(renderer) = renderer {
                     canvas_renderer.set(Some(renderer));
+                    props
+                        .set_compile_status
+                        .read()
+                        .call(NewCompileStatus(0, CanvasCompileStatus::NeedsCompile));
                 }
             });
         } else {
             warn!("canvas element not found");
-        }
-    });
-
-    use_future(move || async move {
-        loop {
-            gloo_timers::future::sleep(std::time::Duration::from_millis(50)).await;
-            if let Some(ref mut renderer) = *canvas_renderer.write() {
-                renderer.render();
-            }
         }
     });
 
