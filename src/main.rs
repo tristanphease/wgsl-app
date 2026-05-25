@@ -45,10 +45,12 @@ struct Settings {
     is_editor_open: Signal<bool>,
     /// Whether the shader should automatically compile on save
     compile_setting: Signal<CompileSetting, SyncStorage>,
+    /// If compile settings is auto then this is the time between editing and compiling
+    auto_compile_time: Signal<u32>,
 }
 
 /// The settings for compiling the shader
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 enum CompileSetting {
     /// Have to manually trigger a recompile
     Manual,
@@ -89,9 +91,11 @@ fn App() -> Element {
     use_context_provider(|| Settings {
         is_editor_open: is_settings_open,
         compile_setting: compile_setting,
+        auto_compile_time: compile_wait,
     });
 
     let mut compile_timeout = use_debounce(
+        // this duration doesn't update reactively
         Duration::from_millis(u64::from(*compile_wait.read())),
         move |()| {
             let mut val = compile_id.write();

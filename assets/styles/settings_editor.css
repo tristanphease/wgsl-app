@@ -38,4 +38,10 @@
 .settings-wrapper {
     display: flex;
     flex-direction: column;
+    padding: 10px;
+}
+
+.button-collection {
+    display: flex;
+    flex-direction: row;
 }

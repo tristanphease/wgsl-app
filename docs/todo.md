@@ -1,9 +1,9 @@
 # Things to improve:
 
-### Improve styling
+### Improve styling/layout
 
 - [ ] Outline different ways to layout the page
-- [ ] Add dark mode
+- [ ] Add dark mode - I want the style to be more fun than a normal programming app
 - [ ] Customise size - drag border to resize
 - [ ] Progressive enhancement - design around smaller screens
 
@@ -36,7 +36,8 @@
 
 - [x] Add settings menu to change various things
 - [x] Handle error from compiling the shader
-- [ ] Add setting to compile shader automatically upon editing the text
+- [x] Add setting to compile shader automatically upon editing the text
+- [x] Add setting to adjust automatic time on edit
 
 ### Management
 
